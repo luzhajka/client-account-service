@@ -17,4 +17,6 @@ public interface PaymentService {
     List<PaymentDto> getOperations(UUID clientId);
 
     BigInteger getBalance(UUID clientId);
+
+    List<PaymentDto> getProjectPayment(Long projectId);
 }

@@ -1,6 +1,6 @@
 package com.luzhajka.clientaccountservice.controller.dto;
 
-import com.luzhajka.clientaccountservice.repository.entity.TypeOperation;
+import com.luzhajka.clientaccountservice.service.TypeOperation;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigInteger;

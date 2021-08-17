@@ -5,6 +5,7 @@ import com.luzhajka.clientaccountservice.controller.dto.PaymentDto;
 import com.luzhajka.clientaccountservice.controller.dto.ReplenishDto;
 import com.luzhajka.clientaccountservice.exceptions.ClientAccountNotFoundException;
 import com.luzhajka.clientaccountservice.repository.AccountRepository;
+import com.luzhajka.clientaccountservice.repository.PaymentRepository;
 import com.luzhajka.clientaccountservice.repository.entity.AccountEntity;
 import com.luzhajka.clientaccountservice.repository.entity.PaymentEntity;
 import com.luzhajka.clientaccountservice.service.PaymentService;
@@ -16,18 +17,21 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import static com.luzhajka.clientaccountservice.repository.entity.TypeOperation.DEBT;
-import static com.luzhajka.clientaccountservice.repository.entity.TypeOperation.REPLENISH;
+import static com.luzhajka.clientaccountservice.service.TypeOperation.DEBT;
+import static com.luzhajka.clientaccountservice.service.TypeOperation.REPLENISH;
 import static java.util.stream.Collectors.toList;
 
 @Service
 public class PaymentServiceImpl implements PaymentService {
     AccountRepository accountRepository;
+    PaymentRepository paymentRepository;
     PaymentDtoEntityMapper paymentMapper;
 
-    public PaymentServiceImpl(AccountRepository accountRepository, PaymentDtoEntityMapper paymentMapper) {
+    public PaymentServiceImpl(AccountRepository accountRepository, PaymentRepository paymentRepository, PaymentDtoEntityMapper paymentMapper) {
         this.accountRepository = accountRepository;
+        this.paymentRepository = paymentRepository;
         this.paymentMapper = paymentMapper;
     }
 
@@ -44,7 +48,8 @@ public class PaymentServiceImpl implements PaymentService {
                         .dateTime(LocalDateTime.now())
                         .accountEntity(accountEntity)
                         .operationAmount(replenishDto.getAmount())
-                        .typeOperation(REPLENISH.name()).build());
+                        .typeOperation(REPLENISH.name())
+                        .build());
 
         accountEntity.setAccountBalance(accountEntity.getAccountBalance().add(replenishDto.getAmount()));
 
@@ -54,8 +59,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public void payProject(DebtDto debtDto) {
-//        TODO: add validation by projectId
-//        debtDto.getProjectId();
+
 
         AccountEntity accountEntity = accountRepository
                 .findById(debtDto.getAccountNumber())
@@ -66,7 +70,9 @@ public class PaymentServiceImpl implements PaymentService {
                         .dateTime(LocalDateTime.now())
                         .accountEntity(accountEntity)
                         .operationAmount(debtDto.getAmount())
-                        .typeOperation(DEBT.name()).build());
+                        .typeOperation(DEBT.name())
+                        .projectId(debtDto.getProjectId())
+                        .build());
         accountEntity.setAccountBalance(accountEntity.getAccountBalance().subtract(debtDto.getAmount()));
 
         accountRepository.saveAndFlush(accountEntity);
@@ -87,5 +93,13 @@ public class PaymentServiceImpl implements PaymentService {
         return accountRepository.findById(clientAccountId)
                 .orElseThrow(() -> new ClientAccountNotFoundException("Клиентский счет не найден"))
                 .getAccountBalance();
+    }
+
+    @Override
+    public List<PaymentDto> getProjectPayment(Long projectId) {
+        return paymentRepository.findAllByProjectId(projectId)
+                .stream()
+                .map(paymentMapper::entityToDto)
+                .collect(toList());
     }
 }
